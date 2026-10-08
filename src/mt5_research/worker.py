@@ -11,7 +11,7 @@ class Worker:
 
     def settings(self):
         p = scoped(self.root,'worker.json',exists=True)
-        c = json.loads(p.read_text())
+        c = json.loads(p.read_text(encoding='utf-8-sig'))
         if c.get('dedicated_installation') is not True:
             raise PolicyError('Dedicated portable MT5 installation must be explicitly confirmed')
         for k in ('terminal','metaeditor'):
@@ -64,7 +64,7 @@ class Worker:
         summary=re.search(r'\b0 errors?\b',text,re.I)
         good=bool(summary and ex5.exists() and ex5.stat().st_size>0 and ex5.stat().st_mtime>=started-2)
         result={'status':'COMPILED' if good else 'FAILED','returncode':rc,'diagnostics':diagnostics,'log':str(log.relative_to(self.root)),'ex5':str(ex5.relative_to(self.root)) if good else None}
-        (run/'compile.json').write_text(json.dumps(result,indent=2))
+        (run/'compile.json').write_text(json.dumps(result,indent=2), encoding='utf-8')
         if not good: raise RuntimeError(json.dumps(result))
         return result
 
@@ -88,7 +88,7 @@ class Worker:
             identity={'broker':account.company,'server':account.server,'build':terminal.build,'trade_mode':account.trade_mode}
         runid=uuid.uuid4().hex;out=scoped(self.root,'outputs/'+runid);out.mkdir(parents=True)
         settings={'run_id':runid,'start':start,'end':end,'aliases':aliases,'period':'H4','deposit':3000,'currency':'USD','leverage':'1:100','model':4,'optimization':False,'visual':False,'risk_input':risk_input,'identity':identity,'status':'INCONCLUSIVE','ea_sha256':hashlib.sha256(ea.read_bytes()).hexdigest(),'preset_sha256':hashlib.sha256(prepared.encode()).hexdigest(),'warnings':warnings+['DATA_MISSING: EA-specific audit schema and verified marker semantics'],'assets':[]}
-        (out/'manifest.json').write_text(json.dumps(settings,indent=2))
+        (out/'manifest.json').write_text(json.dumps(settings,indent=2), encoding='utf-8')
         expert='research_'+runid+'.ex5';presetname='research_'+runid+'.set'
         dst=scoped(self.root,str((c['data_dir']/'MQL5'/'Experts'/expert).relative_to(self.root)));dst.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ea,dst)
         dstps=scoped(self.root,str((c['data_dir']/'MQL5'/'Profiles'/'Tester'/presetname).relative_to(self.root)));dstps.parent.mkdir(parents=True,exist_ok=True)
@@ -129,14 +129,14 @@ class Worker:
                     evidence['export']=exported['quality'];evidence['charts']=plotted
                 except Exception as e:
                     settings['warnings'].append(asset+': DATA_MISSING export/chart: '+redact(str(e)))
-                (out/'manifest.json').write_text(json.dumps(settings,indent=2))
+                (out/'manifest.json').write_text(json.dumps(settings,indent=2), encoding='utf-8')
         except Exception as e:
             settings['status']='CANCELLED' if cancel.is_set() else 'MECHANICAL_FAILURE'
             settings['error']=redact(str(e))
             raise
         finally:
             dst.unlink(missing_ok=True);dstps.unlink(missing_ok=True)
-            (out/'manifest.json').write_text(json.dumps(settings,indent=2))
+            (out/'manifest.json').write_text(json.dumps(settings,indent=2), encoding='utf-8')
         return {'output':str(out.relative_to(self.root)),'status':'INCONCLUSIVE','manifest':settings}
 
 

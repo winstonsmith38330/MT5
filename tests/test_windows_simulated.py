@@ -13,7 +13,7 @@ from mt5_research.export import export
 def worker(tmp_path,monkeypatch):
     terminal=tmp_path/'terminal';terminal.mkdir()
     for name in ['terminal64.exe','metaeditor64.exe']:(terminal/name).write_bytes(b'MOCK_EXECUTABLE_NOT_RUN')
-    (tmp_path/'worker.json').write_text(json.dumps({'dedicated_installation':True,'terminal':'terminal/terminal64.exe','metaeditor':'terminal/metaeditor64.exe','data_dir':'terminal'}))
+    (tmp_path/'worker.json').write_text(json.dumps({'dedicated_installation':True,'terminal':'terminal/terminal64.exe','metaeditor':'terminal/metaeditor64.exe','data_dir':'terminal'}), encoding='utf-8')
     monkeypatch.setattr(Worker,'windows',lambda self:None)
     monkeypatch.setattr('mt5_research.worker.ensure_closed',lambda p:None)
     return Worker(tmp_path),terminal
@@ -21,13 +21,13 @@ def worker(tmp_path,monkeypatch):
 @pytest.mark.parametrize('outcome',['fresh','missing','stale','errors'])
 def test_compiler_diagnostics_freshness_and_documented_args(tmp_path,monkeypatch,outcome):
     w,t=worker(tmp_path,monkeypatch);src=tmp_path/'sources'/'EA';src.mkdir(parents=True)
-    (src/'EA.mq5').write_text('// SYNTHETIC FIXTURE; not an EA implementation')
+    (src/'EA.mq5').write_text('// SYNTHETIC FIXTURE; not an EA implementation', encoding='utf-8')
     (src/'EA.ex5').write_bytes(b'OLD_OUTPUT_MUST_NOT_BE_REUSED')
     def simulated(args,timeout,cancel):
         assert '/log' in args and any(str(a).startswith('/include:') for a in args)
         target=Path(next(str(a).split(':',1)[1] for a in args if str(a).startswith('/compile:')))
         assert not target.with_suffix('.ex5').exists()
-        target.with_suffix('.log').write_text('Result: '+('1 errors, 0 warnings' if outcome=='errors' else '0 errors, 0 warnings'))
+        target.with_suffix('.log').write_text('Result: '+('1 errors, 0 warnings' if outcome=='errors' else '0 errors, 0 warnings'), encoding='utf-8')
         if outcome!='missing':
             ex=target.with_suffix('.ex5');ex.write_bytes(b'MOCK_EX5_NOT_A_REAL_BINARY')
             if outcome=='stale':os.utime(ex,(1,1))
@@ -56,7 +56,7 @@ def test_export_disjoint_chunks_duplicates_and_bounds(tmp_path,monkeypatch):
     monkeypatch.setattr('mt5_research.export.broker_session',session)
     result=export(tmp_path,'MOCK','EURUSD.MOCK','2025-01-01T00:00:00Z','2025-01-01T02:00:00Z',cancel=threading.Event())
     assert int((intervals[1][0]-intervals[0][1]).total_seconds()*1000)==1
-    out=tmp_path/result['output'];rows=list(csv.DictReader((out/'ticks.csv').open()))
+    out=tmp_path/result['output'];rows=list(csv.DictReader((out/'ticks.csv').open(encoding='utf-8-sig')))
     assert len(rows)==4 and rows[0]['time_msc']==rows[1]['time_msc'] and rows[3]['sequence']=='3'
     assert result['quality']['complete_requested_ticks']
     truncated=export(tmp_path,'MOCK','EURUSD.MOCK','2025-01-01T00:00:00Z','2025-01-01T02:00:00Z',max_ticks=3,cancel=threading.Event())
@@ -91,7 +91,7 @@ def test_timeout_kills_only_started_pid(tmp_path,monkeypatch):
 
 def test_smoke_order_fresh_artifacts_and_manifest(tmp_path,monkeypatch):
     w,terminal=worker(tmp_path,monkeypatch)
-    (tmp_path/'EA.ex5').write_bytes(b'MOCK_EX5');(tmp_path/'EA.set').write_text('RiskPercent=1\n')
+    (tmp_path/'EA.ex5').write_bytes(b'MOCK_EX5');(tmp_path/'EA.set').write_text('RiskPercent=1\n', encoding='utf-8')
     fake=SimpleNamespace(account_info=lambda:SimpleNamespace(company='MOCK_BROKER',server='MOCK_SERVER',trade_mode=0),terminal_info=lambda:SimpleNamespace(build=0),symbol_info=lambda s:object())
     @contextmanager
     def session(*a,**kw):yield fake
@@ -101,8 +101,8 @@ def test_smoke_order_fresh_artifacts_and_manifest(tmp_path,monkeypatch):
         from configparser import ConfigParser
         config=Path(next(str(a).split(':',1)[1] for a in args if str(a).startswith('/config:')))
         c=ConfigParser();c.read(config,encoding='utf-16');order.append(c['Tester']['Symbol'])
-        (terminal/(c['Tester']['Report']+'.htm')).write_text('<html>MOCK REPORT: no real tester executed</html>')
-        logs=terminal/'Tester'/'Agent-MOCK'/'logs';logs.mkdir(parents=True,exist_ok=True);(logs/'test.log').write_text('MOCK tester journal')
+        (terminal/(c['Tester']['Report']+'.htm')).write_text('<html>MOCK REPORT: no real tester executed</html>', encoding='utf-8')
+        logs=terminal/'Tester'/'Agent-MOCK'/'logs';logs.mkdir(parents=True,exist_ok=True);(logs/'test.log').write_text('MOCK tester journal', encoding='utf-8')
         return 0
     monkeypatch.setattr(w,'process',simulated)
     def mock_export(root,terminal,symbol,start,end,**kwargs):
@@ -114,7 +114,7 @@ def test_smoke_order_fresh_artifacts_and_manifest(tmp_path,monkeypatch):
     monkeypatch.setattr('mt5_research.export.export',mock_export)
     result=w.smoke('EA.ex5','EA.set',{'NAS100':'NAS.MOCK','EURUSD':'EUR.MOCK'},cancel=threading.Event(),risk_input='RiskPercent')
     assert order==['EUR.MOCK','NAS.MOCK'] and result['status']=='INCONCLUSIVE'
-    out=tmp_path/result['output'];manifest=json.loads((out/'manifest.json').read_text())
+    out=tmp_path/result['output'];manifest=json.loads((out/'manifest.json').read_text(encoding='utf-8-sig'))
     assert manifest['deposit']==3000 and len(manifest['assets'])==2
     assert all(a['fresh_report'] and a['evidence_files'] for a in manifest['assets'])
     assert (out/'EURUSD'/'charts'/'chart.png').exists() and (out/'NAS100'/'charts'/'chart.html').exists()

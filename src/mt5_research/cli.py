@@ -23,7 +23,7 @@ def main():
     elif a.command=='call':
         import asyncio
         from .client import call
-        print(json.dumps(asyncio.run(call(json.loads(Path(a.request).read_text()),port=a.port,wait=a.wait)),indent=2))
+        print(json.dumps(asyncio.run(call(json.loads(Path(a.request).read_text(encoding='utf-8-sig')),port=a.port,wait=a.wait)),indent=2))
     elif a.command=='health':
         import platform
         print(json.dumps({'host_os':platform.system(),'python':platform.python_version(),'workspace':str(root),'mode':'LOCAL_DIAGNOSTIC','broker_connected':False,'note':'Use MCP health_check on Windows for actual broker identity'},indent=2))

@@ -82,19 +82,28 @@ def test_sma_and_shifted_pivot():
     assert result.SMA5.iloc[4]==103 and pd.isna(result.SMA55.iloc[53]) and result.SMA55.iloc[54]==128
     assert pd.isna(result.P.iloc[0]) and result.P.iloc[6]==100 and result.R1.iloc[6]==110 and result.S1.iloc[6]==90
 
-def test_chart_real_artifacts(tmp_path):
+def test_chart_real_artifacts(tmp_path,monkeypatch):
     bars().to_csv(tmp_path/'H4.csv',index=False)
     pd.DataFrame({'event_time_utc':['2025-01-02T00:00:00Z'],'event_price':[107],'event_type':['SYNTHETIC_TEST']}).to_csv(tmp_path/'audit.csv',index=False)
-    (tmp_path/'schema.json').write_text(json.dumps({'time':'event_time_utc','price':'event_price','label':'event_type'}))
+    (tmp_path/'schema.json').write_text(json.dumps({'time':'event_time_utc','price':'event_price','label':'event_type'}), encoding='utf-8')
     result=chart(tmp_path,'H4.csv',markers='audit.csv',schema='schema.json')
     out=tmp_path/result['output']
     assert (out/'chart.png').read_bytes().startswith(b'\x89PNG')
-    assert 'SYNTHETIC_TEST' in (out/'chart.html').read_text()
+    original_read_text=Path.read_text
+    def windows_default_read(path,encoding=None,errors=None):
+        return original_read_text(path,encoding=encoding or 'cp1252',errors=errors)
+    monkeypatch.setattr(Path,'read_text',windows_default_read)
+    with pytest.raises(UnicodeDecodeError): (out/'chart.html').read_text()
+    assert 'SYNTHETIC_TEST' in (out/'chart.html').read_text(encoding='utf-8-sig')
+    from mt5_research.gateway import create
+    server=create(tmp_path,mock=True)
+    retrieved=asyncio.run(server.call_tool('chart_artifact',{'path':result['output']+'/chart.html'}))
+    assert 'SYNTHETIC_TEST' in str(retrieved)
     assert any('D1' in w for w in result['warnings'])
     assert len(pd.read_csv(out/'reference.csv'))==70
 
 def test_data_missing_and_invalid_bars(tmp_path):
-    (tmp_path/'empty.csv').write_text('time,close\n')
+    (tmp_path/'empty.csv').write_text('time,close\n', encoding='utf-8')
     with pytest.raises(PolicyError,match='DATA_MISSING'):frame(tmp_path/'empty.csv',['time','close'])
     h=bars();h.loc[1,'time']=h.loc[0,'time']
     with pytest.raises(PolicyError):indicators(h)
@@ -112,9 +121,9 @@ def test_cloud_refuses_mt5(tmp_path,monkeypatch):
 def test_dedicated_paths(tmp_path):
     (tmp_path/'terminal').mkdir()
     for n in ['terminal64.exe','metaeditor64.exe']:(tmp_path/'terminal'/n).touch()
-    (tmp_path/'worker.json').write_text(json.dumps({'dedicated_installation':True,'terminal':'terminal/terminal64.exe','metaeditor':'terminal/metaeditor64.exe','data_dir':'terminal'}))
+    (tmp_path/'worker.json').write_text(json.dumps({'dedicated_installation':True,'terminal':'terminal/terminal64.exe','metaeditor':'terminal/metaeditor64.exe','data_dir':'terminal'}), encoding='utf-8')
     assert Worker(tmp_path).settings()['data_dir']==tmp_path/'terminal'
-    c=json.loads((tmp_path/'worker.json').read_text());c['data_dir']='..';(tmp_path/'worker.json').write_text(json.dumps(c))
+    c=json.loads((tmp_path/'worker.json').read_text(encoding='utf-8-sig'));c['data_dir']='..';(tmp_path/'worker.json').write_text(json.dumps(c), encoding='utf-8')
     with pytest.raises(PolicyError):Worker(tmp_path).settings()
 
 
@@ -141,13 +150,13 @@ def test_native_endpoint_and_allowlist(tmp_path,monkeypatch):
     n=Native(tmp_path)
     result=asyncio.run(n.request('terminal'));assert result['enabled']==[] and 'compile' in result['missing_categories']
     with pytest.raises(PolicyError):asyncio.run(n.request('terminal','order_send',{}))
-    (tmp_path/'native-policy.json').write_text(json.dumps({'terminal':{'get_workspace_info':{'reviewed':True,'category':'inspect','fixed_arguments':{}}}}))
+    (tmp_path/'native-policy.json').write_text(json.dumps({'terminal':{'get_workspace_info':{'reviewed':True,'category':'inspect','fixed_arguments':{}}}}), encoding='utf-8')
     assert asyncio.run(n.request('terminal','get_workspace_info',{}))=={'text':'[REDACTED]'}
     with pytest.raises(PolicyError):asyncio.run(n.request('terminal','get_workspace_info',{'path':'../secret'}))
-    (tmp_path/'native-policy.json').write_text(json.dumps({'terminal':{'get_workspace_info':{'reviewed':True,'category':'tester','fixed_arguments':{}}}}))
+    (tmp_path/'native-policy.json').write_text(json.dumps({'terminal':{'get_workspace_info':{'reviewed':True,'category':'tester','fixed_arguments':{}}}}), encoding='utf-8')
     with pytest.raises(PolicyError):asyncio.run(n.request('terminal','get_workspace_info',{}))
     Tool.name='trade_send_market_order'
-    (tmp_path/'native-policy.json').write_text(json.dumps({'terminal':{'trade_send_market_order':{'reviewed':True,'category':'inspect','fixed_arguments':{}}}}))
+    (tmp_path/'native-policy.json').write_text(json.dumps({'terminal':{'trade_send_market_order':{'reviewed':True,'category':'inspect','fixed_arguments':{}}}}), encoding='utf-8')
     with pytest.raises(PolicyError):asyncio.run(n.request('terminal','trade_send_market_order',{}))
 
 

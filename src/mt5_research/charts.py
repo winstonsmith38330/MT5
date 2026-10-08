@@ -54,7 +54,7 @@ def chart(root, h4, d1=None, markers=None, schema=None, output=None, *, cancel=N
     if len(data)<55: warnings.append('DATA_MISSING: insufficient SMA55 warmup')
     events=None
     if markers:
-        mapping=json.loads(scoped(root,schema,exists=True).read_text()) if schema else {'time':'time','price':'price','label':'label'}
+        mapping=json.loads(scoped(root,schema,exists=True).read_text(encoding='utf-8-sig')) if schema else {'time':'time','price':'price','label':'label'}
         if set(mapping)!= {'time','price','label'} or not all(isinstance(v,str) for v in mapping.values()): raise PolicyError('Invalid marker schema')
         events=frame(scoped(root,markers,exists=True),mapping.values()).rename(columns={v:k for k,v in mapping.items()})
         events.time=timestamps(events.time);events.price=pd.to_numeric(events.price,errors='raise')
@@ -85,5 +85,5 @@ def chart(root, h4, d1=None, markers=None, schema=None, output=None, *, cancel=N
     ax.xaxis_date();ax.set_title('H4 reference candles / UTC');ax.legend();fig2.autofmt_xdate();fig2.tight_layout();fig2.savefig(out/'chart.png');plt.close(fig2)
     data.to_csv(out/'reference.csv',index=False)
     result={'output':str(out.relative_to(root)),'warnings':warnings,'math':'Completed H4 close SMA5/55; classical previous broker D1 P/R1/S1. Reference only; verify actual EA formulas/shift/price/session.'}
-    (out/'chart-manifest.json').write_text(json.dumps(result,indent=2))
+    (out/'chart-manifest.json').write_text(json.dumps(result,indent=2), encoding='utf-8')
     return result

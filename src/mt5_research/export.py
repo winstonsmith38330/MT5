@@ -58,8 +58,8 @@ def export(root, terminal, symbol, start, end, *, cancel, max_ticks=2000000, out
         info=mt5.symbol_info(symbol)
         if info is None: raise PolicyError('Discover exact broker alias before exporting')
         if not mt5.symbol_select(symbol,True): raise RuntimeError('Symbol selection failed')
-        (out/'symbol.json').write_text(json.dumps(info._asdict(),indent=2,default=str))
-        with (out/'ticks.csv').open('w',newline='') as f:
+        (out/'symbol.json').write_text(json.dumps(info._asdict(),indent=2,default=str), encoding='utf-8')
+        with (out/'ticks.csv').open('w',newline='', encoding='utf-8') as f:
             writer=csv.writer(f);writer.writerow(['sequence','time_msc','utc','bid','ask','last','volume','flags','volume_real'])
             cursor=a
             # Disjoint millisecond intervals preserve all equal-timestamp records.
@@ -84,11 +84,11 @@ def export(root, terminal, symbol, start, end, *, cancel, max_ticks=2000000, out
         for name,tf in [('M15',mt5.TIMEFRAME_M15),('H4',mt5.TIMEFRAME_H4),('D1',mt5.TIMEFRAME_D1)]:
             bars=mt5.copy_rates_range(symbol,tf,a-timedelta(days=120),b)
             if bars is None: raise RuntimeError('Broker reference bar retrieval failed')
-            with (out/(name+'.csv')).open('w',newline='') as f:
+            with (out/(name+'.csv')).open('w',newline='', encoding='utf-8') as f:
                 writer=csv.writer(f);writer.writerow(bars.dtype.names);writer.writerows(bars.tolist())
             if not len(bars): warnings.append('DATA_MISSING: '+name+' bars')
         if count==0: warnings.append('DATA_MISSING: no ticks')
         if zero_quotes: warnings.append('ZERO_QUOTES: bid/ask absent or nonpositive on '+str(zero_quotes)+' ticks; interpret flags/instrument conventions')
         metadata={'first_time_msc':first_msc,'last_time_msc':previous,'max_gap_ms':max_gap_ms,'gap_note':'Gaps include legitimate closed sessions; compare broker calendar/history before classifying data loss','symbol':symbol,'start_utc':a.isoformat(),'end_utc_exclusive':b.isoformat(),'ticks':count,'complete_requested_ticks':cursor>=b,'tick_order':'source sequence; equal millisecond timestamps retained','quote_sides':['bid','ask','last'],'warnings':warnings,'broker_chart_timezone':'UNKNOWN: supply actual broker session/D1 boundaries; never infer from OS timezone','coverage':'Requested interval is not proof of complete broker history; inspect gaps and tester journal'}
-        (out/'data-quality.json').write_text(json.dumps(metadata,indent=2))
+        (out/'data-quality.json').write_text(json.dumps(metadata,indent=2), encoding='utf-8')
     return {'output':str(out.relative_to(Path(root).resolve())),'quality':metadata}

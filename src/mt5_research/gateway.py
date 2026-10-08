@@ -101,7 +101,7 @@ def create(root, *, mock=False, port=8765):
         from .security import scoped
         p=scoped(root,path,exists=True)
         if not p.is_relative_to(root/'outputs') or p.suffix!='.json' or p.stat().st_size>1024*1024: raise PolicyError('Only output JSON manifests up to 1 MiB')
-        return redact(json.loads(p.read_text()))
+        return redact(json.loads(p.read_text(encoding='utf-8-sig')))
 
     @server.tool()
     def chart_artifact(path: str) -> dict:
@@ -112,6 +112,6 @@ def create(root, *, mock=False, port=8765):
         if not p.is_relative_to(root/'outputs') or p.name not in {'chart.png','chart.html'} or p.stat().st_size>16*1024*1024:
             raise PolicyError('Only generated chart PNG/HTML up to 16 MiB')
         if p.suffix=='.png': return {'mime_type':'image/png','base64':base64.b64encode(p.read_bytes()).decode()}
-        return {'mime_type':'text/html','text':redact(p.read_text())}
+        return {'mime_type':'text/html','text':redact(p.read_text(encoding='utf-8-sig'))}
 
     return server

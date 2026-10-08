@@ -29,7 +29,7 @@ class Native:
 
     def policy(self):
         p = scoped(self.root, 'native-policy.json')
-        return json.loads(p.read_text()) if p.exists() else {}
+        return json.loads(p.read_text(encoding='utf-8-sig')) if p.exists() else {}
 
     async def request(self, endpoint, name=None, arguments=None):
         if endpoint not in ('terminal','editor'):
