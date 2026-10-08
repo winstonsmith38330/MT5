@@ -1,0 +1,6 @@
+{
+  "dedicated_installation": true,
+  "terminal": "terminal/terminal64.exe",
+  "metaeditor": "terminal/metaeditor64.exe",
+  "data_dir": "terminal"
+}

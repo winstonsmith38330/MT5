@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mt5-research"
+version = "0.1.0"
+description = "Bounded MT5 research gateway and offline artifacts"
+requires-python = ">=3.12,<3.15"
+dependencies = ["mcp>=1.20,<2", "httpx>=0.28,<1", "pandas>=2.2,<3", "matplotlib>=3.9,<4", "plotly>=6,<7", "PyJWT[crypto]>=2.10,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+windows = ["MetaTrader5>=5.0; sys_platform == 'win32'"]
+
+[project.scripts]
+mt5-research = "mt5_research.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

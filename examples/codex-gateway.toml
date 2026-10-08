@@ -1,0 +1,4 @@
+# Local Windows Codex, copied to its configuration after review.
+[mcp_servers.mt5_research]
+url = "http://127.0.0.1:8765/mcp"
+enabled_tools = ["health_check", "discover_native", "native_research_call", "compile_ea", "smoke_batch", "export_market_data", "chart_job", "job_status", "cancel_job", "artifact_manifest", "broker_inspect", "chart_artifact"]

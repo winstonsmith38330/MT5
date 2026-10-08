@@ -1,0 +1,12 @@
+{
+  "tool": "smoke_batch",
+  "arguments": {
+    "ex5": "outputs/REPLACE_WITH_COMPILE_JOB/source/SuppliedEA.ex5",
+    "preset": "presets/SuppliedEA.set",
+    "aliases": {"EURUSD": "DISCOVER_EURUSD_ALIAS", "NAS100": "DISCOVER_NAS100_ALIAS"},
+    "start": "2025-01-01",
+    "end": "2025-02-01",
+    "risk_input": null,
+    "timeout": 1800
+  }
+}

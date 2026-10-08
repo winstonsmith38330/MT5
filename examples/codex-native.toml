@@ -1,0 +1,13 @@
+# Copy endpoint URLs from the installed applications, never from this example.
+# Replace placeholders locally before use. Tokens remain environment variables.
+# Direct native endpoints may expose trading tools: enable ONLY names reviewed
+# from actual schemas, in enabled_tools. Empty lists deliberately enable nothing.
+[mcp_servers.mt5_terminal]
+url = "http://127.0.0.1:REPLACE_PORT/REPLACE_PATH"
+bearer_token_env_var = "MT5_TERMINAL_TOKEN"
+enabled_tools = []
+
+[mcp_servers.mt5_editor]
+url = "http://127.0.0.1:REPLACE_PORT/REPLACE_PATH"
+bearer_token_env_var = "MT5_EDITOR_TOKEN"
+enabled_tools = []
